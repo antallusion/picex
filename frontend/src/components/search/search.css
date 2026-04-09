@@ -1,0 +1,167 @@
+.search {
+    padding: 0 13px;
+}
+
+.search__form {
+    max-width: 854px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 18px;
+    border: 1px solid #F1E8DF;
+    background-color: var(--brown);
+}
+
+.search__error {
+    color: #ff4343;
+    font-size: 14px;
+    text-align: start;
+    margin-top: 10px;
+}
+
+.search--white .search__form {
+    background-color: var(--white);
+}
+
+.search__top {
+    display: flex;
+    gap: 0 6px;
+}
+
+
+.search__item {
+    flex-grow: 1;
+    position: relative;
+}
+
+.search__icon {
+    fill: #E05E7A;
+}
+
+.search__input {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    border: 1px solid #f1e8df;
+    border-radius: 10px;
+    background-color: var(--white);
+    font-weight: 700;
+    box-shadow: 1px 4px 7.1px 0px #00000005;
+    color: #BFA080;
+    cursor: text;
+    padding: 12px 15px 12px 37px;
+
+
+}
+
+.search__input::-webkit-search-decoration,
+.search__input::-webkit-search-cancel-button,
+.search__input::-webkit-search-results-button,
+.search__input::-webkit-search-results-decoration {
+    display: none;
+}
+
+.search__input::placeholder {
+    color: #E5D6C7;
+}
+
+.search__input:focus {
+    outline: none;
+}
+
+.search__input--loading {
+    background-color: transparent;
+    border: 1px solid #F1E8DF;
+    color: #E5D6C7;
+}
+
+
+
+.search__url {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 15px;
+    fill: #BFA080;
+}
+
+.search__button {
+    border-radius: 10px;
+    padding: 13px 37.5px;
+    border: 0;
+    color: #E05E7A;
+    border: 1px solid #e2728a;
+    border-radius: 10px;
+    font-weight: 700;
+    box-shadow: 1px 4px 7.1px 0px #00000005;
+    background-color: #ffc6d2;
+    display: flex;
+    gap: 0 6px;
+    align-items: center;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.search__button--loading {
+    color: #F1E8DF;
+    background-color: transparent;
+    border: 1px solid #F1E8DF;
+}
+
+.search__button--loading svg {
+    display: none;
+}
+
+.search__loading {
+    margin-top: 16px;
+    padding: 13px 15px;
+    background-color: var(--white);
+    border-radius: 10px;
+}
+
+.search__title {
+    text-align: start;
+    color: var(--gray);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.search__line {
+    width: 100%;
+    margin-top: 6px;
+    height: 6px;
+    background-color: #FFDFE6;
+    border-radius: 10px;
+}
+
+.search__line-item {
+    background-color: #E05E7A;
+    height: 100%;
+    border-radius: 10px;
+    transition: .55s all linear;
+}
+
+.search__message {
+    font-size: 14px;
+    color: var(--white);
+    margin-top: 10px;
+    text-align: start;
+}
+
+
+
+@media (max-width:768px) {
+    .search__top {
+        flex-direction: column;
+        gap: 16px 0;
+    }
+
+    .search__button {
+        justify-content: center;
+        padding: 13px;
+    }
+
+    .search__title {
+        font-size: 10px;
+    }
+}

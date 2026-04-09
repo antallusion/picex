@@ -1,0 +1,11 @@
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.env
+.env.*
+*.log
+*.zip
+*.tar.gz
+.DS_Store

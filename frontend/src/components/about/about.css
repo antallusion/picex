@@ -1,0 +1,56 @@
+.about {
+    padding-top: 65px;
+    max-width: 855px;
+    margin: 0 auto;
+}
+
+.about__list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-content: center;
+    gap: 42px 29px;
+    margin: 0 auto;
+
+}
+
+.about__item {
+    display: flex;
+    gap: 0 16px;
+    color: var(--gray);
+    text-align: start;
+}
+
+.about__name {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.about__text {
+    max-width: 350px;
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.about__icon {
+    width: 46px;
+    flex-shrink: 0;
+}
+
+@media (max-width:968px) {
+    .about {
+        padding-top: 52px;
+    }
+
+
+    .about__list {
+        grid-template-columns: auto;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .about {
+        padding-top: 28px;
+    }
+}

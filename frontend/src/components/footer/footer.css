@@ -1,0 +1,23 @@
+.footer {
+    background-color: var(--brown);
+    padding: 24px 0;
+}
+
+
+.footer__inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1477px;
+    padding: 0 10px 0 17px;
+}
+
+.footer__text {
+    color: var(--white);
+    font-size: 14px;
+}
+
+.footer__link {
+    color: inherit;
+    text-decoration: underline;
+}

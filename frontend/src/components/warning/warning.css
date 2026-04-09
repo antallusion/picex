@@ -1,0 +1,36 @@
+
+.warning__block {
+    padding: 22px 20px;
+    border-radius: 10px;
+    background-color: #FDEDF0;
+    text-align: start;
+    color: var(--gray);
+    border: 1px solid #E9B2BD;
+    position: relative;
+}
+
+.warning__top {
+    display: flex;
+    align-items: center;
+    gap: 0 12px;
+}
+
+.warning__title {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.warning__text {
+    line-height: 1.6;
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.warning__close {
+    position: absolute;
+    top: 13px;
+    right: 11px;
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+}
