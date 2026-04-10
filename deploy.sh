@@ -7,11 +7,8 @@ set -euo pipefail
 echo "→ Получаем последние изменения..."
 git pull origin main
 
-echo "→ Устанавливаем зависимости..."
-npm install
-
-echo "→ Собираем фронтенд..."
-npm run build
+echo "→ Устанавливаем зависимости и собираем фронтенд..."
+npm run setup
 
 echo "→ Перезапускаем сервер..."
 # reload — graceful restart без даунтайма
