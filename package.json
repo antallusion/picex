@@ -2,12 +2,14 @@
   "name": "picex",
   "version": "1.0.0",
   "description": "Image extractor - fullstack monorepo",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "install:all": "npm --prefix backend install && npm --prefix frontend install",
-    "build": "npm --prefix frontend run build",
-    "setup": "npm run install:all && npm run build",
-    "start": "npm --prefix backend run start",
-    "dev": "npm --prefix backend run dev"
+    "build": "npm run build --workspace=./frontend",
+    "start": "node backend/app.js",
+    "dev": "nodemon backend/app.js"
   },
   "author": "",
   "license": "ISC"
