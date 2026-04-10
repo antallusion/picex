@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Frontend for extracting images from websites",
   "main": "src/index.js",
-  "proxy": "http://localhost:3000",
+  "proxy": "http://localhost:5000",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

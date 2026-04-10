@@ -1,5 +1,15 @@
+# ── Stage 1: Build React frontend ─────────────────────────────────────────────
+FROM node:18 AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# ── Stage 2: Production backend with Puppeteer + built frontend ────────────────
 FROM node:18
 
+# Системные зависимости для Chromium/Puppeteer
 RUN apt-get update && apt-get install -y \
   libnss3 \
   libatk1.0-0 \
@@ -24,15 +34,17 @@ RUN apt-get update && apt-get install -y \
   --no-install-recommends && \
   apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Рабочая директория бэкенда — путь ../frontend/build из __dirname будет /app/frontend/build
+WORKDIR /app/backend
 
 COPY backend/package*.json ./
-RUN npm install
-
+RUN npm install --omit=dev
 RUN node node_modules/puppeteer/install.js
 
-COPY backend/ .
+COPY backend/ ./
 
-EXPOSE 5000
+# Копируем собранный фронтенд из stage 1
+COPY --from=frontend-builder /app/frontend/build /app/frontend/build
+
+EXPOSE 3000
 CMD ["node", "app.js"]
-
