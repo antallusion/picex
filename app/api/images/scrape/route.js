@@ -1,41 +1,67 @@
 import { NextResponse } from 'next/server';
-import sharp from 'sharp';
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const makeAbsoluteUrl = (url, baseUrl) => {
   if (url.startsWith('//')) return `https:${url}`;
-  if (!url.startsWith('http')) return new URL(url, baseUrl).href;
+  if (!url.startsWith('http')) {
+    try {
+      return new URL(url, baseUrl).href;
+    } catch {
+      return url;
+    }
+  }
   return url;
 };
 
-const getImageSize = async (imageUrl) => {
+const getImageInfo = async (imageUrl) => {
   try {
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, {
+      method: 'HEAD',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
+    });
+    
     if (response.ok) {
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const metadata = await sharp(buffer).metadata();
-      const fileSizeInBytes =
-        parseInt(response.headers.get('content-length'), 10) || buffer.length;
-      const fileSizeInKb = fileSizeInBytes / 1024;
+      const contentType = response.headers.get('content-type') || '';
+      const contentLength = parseInt(response.headers.get('content-length'), 10) || 0;
+      
+      let format = 'unknown';
+      if (contentType.includes('jpeg') || contentType.includes('jpg')) format = 'jpeg';
+      else if (contentType.includes('png')) format = 'png';
+      else if (contentType.includes('gif')) format = 'gif';
+      else if (contentType.includes('webp')) format = 'webp';
+      else if (contentType.includes('svg')) format = 'svg';
+      else if (contentType.includes('ico')) format = 'ico';
+      else {
+        const urlLower = imageUrl.toLowerCase();
+        if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) format = 'jpeg';
+        else if (urlLower.includes('.png')) format = 'png';
+        else if (urlLower.includes('.gif')) format = 'gif';
+        else if (urlLower.includes('.webp')) format = 'webp';
+        else if (urlLower.includes('.svg')) format = 'svg';
+        else if (urlLower.includes('.ico')) format = 'ico';
+      }
+      
+      const fileSizeInKb = contentLength / 1024;
       const fileSizeInMb = fileSizeInKb / 1024;
-      const fileSize =
-        fileSizeInMb > 1
-          ? `${fileSizeInMb.toFixed(2)} Мб`
-          : `${fileSizeInKb.toFixed(2)} Кб`;
+      const fileSize = fileSizeInMb > 1
+        ? `${fileSizeInMb.toFixed(2)} MB`
+        : `${fileSizeInKb.toFixed(2)} KB`;
+      
       return {
-        width: metadata.width,
-        height: metadata.height,
-        format: metadata.format,
-        size: metadata.size,
+        format,
         fileSize,
+        size: contentLength,
+        width: 200,
+        height: 200,
       };
     }
   } catch (err) {
-    console.error(`Ошибка получения размера изображения: ${imageUrl}`, err.message);
+    console.error(`Error getting image info: ${imageUrl}`, err.message);
   }
-  return { width: 0, height: 0 };
+  return null;
 };
 
 export async function POST(request) {
@@ -43,143 +69,88 @@ export async function POST(request) {
   const { url } = body;
 
   if (!url) {
-    return NextResponse.json({ error: 'URL обязателен' }, { status: 400 });
+    return NextResponse.json({ error: 'URL is required' }, { status: 400 });
   }
 
-  const { default: pLimit } = await import('p-limit');
-
-  let browser;
   try {
-    if (process.env.VERCEL) {
-      const chromium = require('@sparticuz/chromium');
-      const puppeteer = require('puppeteer-core');
-      browser = await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      });
-    } else {
-      const puppeteer = require('puppeteer');
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      return NextResponse.json({ message: 'Failed to fetch the page' }, { status: 400 });
     }
 
-    const page = await browser.newPage();
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    );
-    await page.setJavaScriptEnabled(true);
+    const html = await response.text();
+    
+    const imagePatterns = [
+      /<img[^>]+src=["']([^"']+)["']/gi,
+      /srcset=["']([^"']+)["']/gi,
+      /data-src=["']([^"']+)["']/gi,
+      /data-bg=["']([^"']+)["']/gi,
+      /content=["']([^"']+\.(jpg|jpeg|png|gif|webp|svg|ico)[^"']*)["']/gi,
+      /url\(["']?([^"')]+\.(jpg|jpeg|png|gif|webp|svg|ico)[^"')]*)/gi,
+      /background(-image)?:\s*url\(["']?([^"')]+)["']?\)/gi,
+    ];
 
-    const interceptedImages = new Set();
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-      if (request.resourceType() === 'image') {
-        interceptedImages.add(request.url());
-      }
-      request.continue();
-    });
+    const allImages = new Set();
 
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-
-    const ogImages = await page.evaluate(() => {
-      return [
-        'meta[property="og:image"]',
-        'meta[property="og:image:secure_url"]',
-        'meta[property="twitter:image"]',
-        'meta[name="twitter:image"]',
-      ]
-        .map((tag) => {
-          const el = document.querySelector(tag);
-          return el ? el.getAttribute('content') : null;
-        })
-        .filter(Boolean);
-    });
-
-    const images = await page.evaluate(() => {
-      const imgTags = Array.from(document.images, (img) => img.src);
-      const backgroundImages = Array.from(document.querySelectorAll('*'))
-        .map((el) => getComputedStyle(el).backgroundImage)
-        .filter((u) => u && u.startsWith('url'))
-        .map((u) => u.slice(5, -2));
-      const srcsetImages = Array.from(document.querySelectorAll('[srcset]'))
-        .map((el) =>
-          el.getAttribute('srcset').split(',').map((s) => s.trim().split(' ')[0])
-        )
-        .flat();
-      const dataSrcImages = Array.from(
-        document.querySelectorAll('[data-src], [data-bg]')
-      ).map((el) => el.getAttribute('data-src') || el.getAttribute('data-bg'));
-      return [...imgTags, ...backgroundImages, ...srcsetImages, ...dataSrcImages];
-    });
-
-    const cssFiles = await page.$$eval('link[rel="stylesheet"]', (links) =>
-      links.map((link) => link.href)
-    );
-
-    const cssImages = [];
-    for (const file of cssFiles) {
-      try {
-        const cssResponse = await fetch(file);
-        const cssText = await cssResponse.text();
-        const matches = cssText.match(/url\(([^)]+)\)/g);
-        if (matches) {
-          matches.forEach((match) => {
-            const imageUrl = match.replace(/url\(["']?|["']?\)/g, '');
-            if (imageUrl.match(/\.(jpeg|jpg|png|svg|webp|gif|ico)$/i)) {
-              cssImages.push(imageUrl);
-            }
-          });
+    for (const pattern of imagePatterns) {
+      let match;
+      while ((match = pattern.exec(html)) !== null) {
+        const imgUrl = match[1] || match[2];
+        if (imgUrl && !imgUrl.startsWith('data:')) {
+          const absoluteUrl = makeAbsoluteUrl(imgUrl, url);
+          if (absoluteUrl.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)/i) || 
+              absoluteUrl.includes('image') ||
+              !absoluteUrl.includes('.js') && !absoluteUrl.includes('.css')) {
+            allImages.add(absoluteUrl);
+          }
         }
-      } catch (err) {
-        console.error(`Ошибка загрузки CSS-файла: ${file}`, err.message);
       }
     }
 
-    const allImages = [
-      ...new Set([...images, ...cssImages, ...interceptedImages, ...ogImages]),
-    ].map((imgUrl) => makeAbsoluteUrl(imgUrl, url));
+    const srcsetMatches = html.match(/srcset=["']([^"']+)["']/gi) || [];
+    for (const srcsetMatch of srcsetMatches) {
+      const srcset = srcsetMatch.replace(/srcset=["']|["']/g, '');
+      const urls = srcset.split(',').map(s => s.trim().split(' ')[0]);
+      urls.forEach(imgUrl => {
+        if (imgUrl && !imgUrl.startsWith('data:')) {
+          allImages.add(makeAbsoluteUrl(imgUrl, url));
+        }
+      });
+    }
+
+    const { default: pLimit } = await import('p-limit');
+    const limit = pLimit(10);
 
     const validImages = [];
-    const baseUrls = new Set();
-    const limit = pLimit(5);
-
-    await Promise.allSettled(
-      allImages
-        .filter((imgUrl) => !imgUrl.startsWith('data:'))
-        .map((imgUrl) => {
-          const baseImageUrl = imgUrl.replace(/-\d+x\d+\./, '.');
-          if (baseUrls.has(baseImageUrl)) return Promise.resolve();
-          baseUrls.add(baseImageUrl);
-          return limit(() =>
-            getImageSize(baseImageUrl).then((size) => {
-              if (size.width > 1 && size.height > 1) {
-                validImages.push({
-                  src: imgUrl,
-                  original: baseImageUrl !== imgUrl ? baseImageUrl : null,
-                  size,
-                });
-              }
-            })
-          );
-        })
+    const promises = Array.from(allImages).map((imgUrl) =>
+      limit(async () => {
+        const info = await getImageInfo(imgUrl);
+        if (info && info.format !== 'unknown') {
+          validImages.push({
+            src: imgUrl,
+            original: null,
+            size: info,
+          });
+        }
+      })
     );
 
+    await Promise.allSettled(promises);
+
     if (validImages.length === 0) {
-      return NextResponse.json({ message: 'Изображения не найдены' }, { status: 404 });
+      return NextResponse.json({ message: 'No images found' }, { status: 404 });
     }
 
     return NextResponse.json({
-      images: validImages.sort(
-        (a, b) => b.size.width * b.size.height - a.size.width * a.size.height
-      ),
+      images: validImages.sort((a, b) => (b.size.size || 0) - (a.size.size || 0)),
     });
   } catch (error) {
-    console.error('Ошибка при парсинге страницы:', error.message);
-    return NextResponse.json({ error: 'Ошибка при парсинге страницы' }, { status: 500 });
-  } finally {
-    if (browser) await browser.close();
+    console.error('Error parsing page:', error.message);
+    return NextResponse.json({ error: 'Error parsing page' }, { status: 500 });
   }
 }
