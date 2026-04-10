@@ -1,14 +1,21 @@
 {
   "name": "picex",
   "version": "1.0.0",
-  "description": "Image extractor - fullstack monorepo",
+  "description": "Image extractor",
   "scripts": {
-    "install:all": "npm --prefix backend install && npm --prefix frontend install",
-    "build": "npm --prefix frontend install && npm --prefix frontend run build",
-    "setup": "npm run install:all && npm run build",
-    "start": "node backend/app.js",
-    "dev": "nodemon backend/app.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
-  "author": "",
-  "license": "ISC"
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@sparticuz/chromium": "^123.0.1",
+    "jszip": "^3.10.1",
+    "p-limit": "^6.1.0",
+    "puppeteer": "^19.0.0",
+    "puppeteer-core": "^19.11.1",
+    "sharp": "^0.33.5"
+  }
 }
